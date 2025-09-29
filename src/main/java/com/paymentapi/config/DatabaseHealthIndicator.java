@@ -29,7 +29,6 @@ public class DatabaseHealthIndicator implements HealthIndicator {
         try {
             Instant start = Instant.now();
 
-            // Check database connection validity
             boolean isValid = databaseConfig.isConnectionValid();
 
             Duration responseTime = Duration.between(start, Instant.now());
@@ -62,7 +61,6 @@ public class DatabaseHealthIndicator implements HealthIndicator {
 
     private String getConnectionPoolStatus() {
         try (Connection connection = dataSource.getConnection()) {
-            // Basic connection pool info
             return "Active connection obtained";
         } catch (SQLException e) {
             logger.warn("Failed to obtain connection for pool status check: {}", e.getMessage());

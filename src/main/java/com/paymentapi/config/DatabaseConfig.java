@@ -41,7 +41,7 @@ public class DatabaseConfig {
             logger.debug("Executing database connectivity test query");
             Integer result = jdbcTemplate.queryForObject(TEST_QUERY, Integer.class);
 
-            if (result == null || !Integer.valueOf(1).equals(result)) {
+            if (!Integer.valueOf(1).equals(result)) {
                 throw new DataAccessResourceFailureException("Unexpected result from database test query: " + result);
             }
 

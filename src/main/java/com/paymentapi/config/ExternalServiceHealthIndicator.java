@@ -16,12 +16,11 @@ public class ExternalServiceHealthIndicator implements HealthIndicator {
 
     private static final Logger logger = LoggerFactory.getLogger(ExternalServiceHealthIndicator.class);
     private static final String AUTHORIZATION_SERVICE_URL = "https://util.devi.tools/api/v2/authorize";
-    private static final int TIMEOUT_MS = 5000; // 5 seconds as per Dev Notes
+    private static final int TIMEOUT_MS = 5000;
 
     private final RestTemplate restTemplate;
 
     public ExternalServiceHealthIndicator() {
-        // Configure RestTemplate with proper timeouts
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(TIMEOUT_MS);
         factory.setReadTimeout(TIMEOUT_MS);
@@ -37,7 +36,6 @@ public class ExternalServiceHealthIndicator implements HealthIndicator {
     public Health health() {
         Health.Builder authServiceHealth = checkAuthorizationService();
 
-        // Aggregate external service health
         if (authServiceHealth.build().getStatus().getCode().equals("UP")) {
             return Health.up()
                 .withDetail("authorizationService", authServiceHealth.build().getDetails())
@@ -53,8 +51,6 @@ public class ExternalServiceHealthIndicator implements HealthIndicator {
         try {
             Instant start = Instant.now();
 
-            // Simple HEAD request to check if service is reachable
-            // We use a simple GET as the authorization endpoint might not support HEAD
             try {
                 restTemplate.getForEntity(AUTHORIZATION_SERVICE_URL, String.class);
                 Duration responseTime = Duration.between(start, Instant.now());
