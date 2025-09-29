@@ -1,0 +1,2 @@
+SELECT 'CREATE DATABASE payment_api_dev' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'payment_api_dev')\gexec
+SELECT 'CREATE DATABASE payment_api_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'payment_api_test')\gexec
