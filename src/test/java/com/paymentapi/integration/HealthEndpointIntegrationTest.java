@@ -37,7 +37,6 @@ class HealthEndpointIntegrationTest {
         String status = (String) response.getBody().get("status");
         assertThat(status).isIn("UP", "DOWN");
 
-        // Check components structure if present
         if (response.getBody().containsKey("components")) {
             @SuppressWarnings("unchecked")
             Map<String, Object> components = (Map<String, Object>) response.getBody().get("components");
@@ -94,8 +93,6 @@ class HealthEndpointIntegrationTest {
 
     @Test
     void testHealthEndpoints_ShouldBeAccessibleWithoutAuthentication() {
-        // This test verifies that health endpoints don't require authentication
-        // by successfully calling them without providing credentials
 
         // Act & Assert - Ready endpoint
         ResponseEntity<Map> readyResponse = restTemplate.getForEntity(

@@ -2,6 +2,7 @@ spring:
   datasource:
     url: jdbc:tc:postgresql:15.5:///payment_api_test
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -9,21 +10,22 @@ spring:
     properties:
       hibernate:
         '[format_sql]': true
+
   flyway:
     enabled: false
+
   test:
     database:
       replace: none
 
 logging:
   level:
-    '[com.paymentapi]': DEBUG
+    root: ${LOG_LEVEL:INFO}
+    '[com.paymentapi]': ${LOG_LEVEL:INFO}
     '[org.testcontainers]': INFO
     '[com.github.dockerjava]': WARN
     '[org.springframework.web]': INFO
     '[org.hibernate.SQL]': DEBUG
-  pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
 
 management:
   endpoints:

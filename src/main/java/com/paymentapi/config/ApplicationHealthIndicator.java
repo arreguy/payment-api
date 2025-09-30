@@ -10,21 +10,32 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
+/**
+ * Indicador de saúde da aplicação.
+ * Mostra informações sobre o status da aplicação, memória, tempo de atividade, etc.
+ */
 @Component("application")
 public class ApplicationHealthIndicator implements HealthIndicator {
 
+    // Começo da aplicação
     private final Instant startTime;
 
     public ApplicationHealthIndicator() {
+        // Horário que a JVM foi iniciada
         this.startTime = Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean().getStartTime());
     }
 
+    /**
+     * Verifica a saúde da aplicação
+     */
     @Override
     public Health health() {
         try {
+            // Informações de memória
             MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
             long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
 
+            // Monta a resposta com as informações
             return Health.up()
                 .withDetail("service", "payment-api")
                 .withDetail("version", "1.0.0")
@@ -36,6 +47,7 @@ public class ApplicationHealthIndicator implements HealthIndicator {
                 .build();
 
         } catch (Exception e) {
+            // Se der erro, retorna DOWN
             return Health.down()
                 .withDetail("service", "payment-api")
                 .withDetail("error", e.getMessage())
@@ -43,7 +55,12 @@ public class ApplicationHealthIndicator implements HealthIndicator {
         }
     }
 
+    /**
+     * Formata o tempo de atividade (uptime) de forma legível
+     * Exemplo: 2d 5h 30m
+     */
     private String formatUptime(long uptimeMs) {
+        // Converte milissegundos pra segundos, minutos, horas e dias
         long seconds = uptimeMs / 1000;
         long minutes = seconds / 60;
         long hours = minutes / 60;
@@ -60,6 +77,10 @@ public class ApplicationHealthIndicator implements HealthIndicator {
         }
     }
 
+    /**
+     * Formata bytes pra formato legível (KB, MB, GB, etc)
+     * Exemplo: 1536 -> 1.5 KB
+     */
     private String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));

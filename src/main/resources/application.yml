@@ -8,6 +8,7 @@ spring:
     name: payment-api
   profiles:
     active: dev
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -16,11 +17,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         '[format_sql]': true
+
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/payment_api
     username: ${DB_USERNAME:payment_user}
     password: ${DB_PASSWORD:payment_pass}
+
     hikari:
       pool-name: PaymentApiHikariCP
       maximum-pool-size: 20
@@ -31,6 +34,7 @@ spring:
       validation-timeout: 5000
       leak-detection-threshold: 60000
       connection-test-query: SELECT 1
+
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -41,12 +45,20 @@ spring:
 
 logging:
   level:
-    '[com.paymentapi]': INFO
+    # Nível de log pode ser sobrescrito pela variável de ambiente LOG_LEVEL
+    root: ${LOG_LEVEL:INFO}
+    '[com.paymentapi]': ${LOG_LEVEL:INFO}
+    '[org.springframework.web]': WARN
     '[org.springframework.security]': WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+    '[org.hibernate]': WARN
+  # Obs: O formato dos logs é controlado pelo logback-spring.xml
 
+  request-response:
+    enabled: true
+    include-headers: false
+    include-query-params: true
+
+# Configurações do Actuator
 management:
   endpoints:
     web:
@@ -59,7 +71,7 @@ management:
     metrics:
       export:
         enabled: true
-        
+
 springdoc:
   api-docs:
     path: /api-docs

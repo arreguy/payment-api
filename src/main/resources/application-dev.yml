@@ -1,32 +1,36 @@
 spring:
+  # Banco de dados separado do prod
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/payment_api_dev}
     username: ${DB_USERNAME:payment_user}
     password: ${DB_PASSWORD:payment_pass}
+
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 1200000
+
   jpa:
     show-sql: true
     properties:
       hibernate:
         '[format_sql]': true
+
   flyway:
     locations: classpath:db/migration
     schemas: public
 
 logging:
   level:
-    '[com.paymentapi]': DEBUG
-    '[org.springframework.web]': DEBUG
-    '[org.springframework.security]': DEBUG
+    # Em dev, usa DEBUG por padrão
+    root: ${LOG_LEVEL:DEBUG}
+    '[com.paymentapi]': ${LOG_LEVEL:DEBUG}
+    '[org.springframework.web]': ${LOG_LEVEL:DEBUG}
+    '[org.springframework.security]': ${LOG_LEVEL:DEBUG}
     '[org.hibernate.SQL]': DEBUG
     '[org.hibernate.type.descriptor.sql.BasicBinder]': TRACE
-  file:
-    name: logs/payment-api-dev.log
 
 management:
   endpoint:

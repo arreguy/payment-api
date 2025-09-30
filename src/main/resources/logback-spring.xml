@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="SERVICE_NAME" value="payment-api"/>
+    <springProperty scope="context" name="activeProfile" source="spring.profiles.active" defaultValue="dev"/>
+
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <timeZone>UTC</timeZone>
+
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <version>[ignore]</version>
+                <levelValue>[ignore]</levelValue>
+            </fieldNames>
+
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <includeMdcKeyName>correlation_id</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+            <includeMdcKeyName>user_id</includeMdcKeyName>
+            <includeMdcKeyName>requestPath</includeMdcKeyName>
+            <includeMdcKeyName>request_path</includeMdcKeyName>
+            <includeMdcKeyName>errorType</includeMdcKeyName>
+            <includeMdcKeyName>error_type</includeMdcKeyName>
+
+            <customFields>{"service_name":"${SERVICE_NAME}","environment":"${activeProfile}"}</customFields>
+
+            <includeCallerData>true</includeCallerData>
+
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>full</maxDepthPerThrowable>
+                <maxLength>8192</maxLength>
+                <shortenedClassNameLength>36</shortenedClassNameLength>
+                <exclude>sun\.reflect\..*</exclude>
+                <exclude>java\.lang\.reflect\..*</exclude>
+                <exclude>net\.sf\.cglib\..*</exclude>
+                <rootCauseFirst>true</rootCauseFirst>
+            </throwableConverter>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE_STANDARD" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{correlationId}] - %msg%n</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Configurações específicas por profile do Spring -->
+
+    <!-- Profile de desenvolvimento -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE_STANDARD"/>
+        </root>
+        <logger name="com.paymentapi" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Profile de teste -->
+    <springProfile name="test">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+        <logger name="com.paymentapi" level="DEBUG"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+    <!-- Profile de produção -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+        <logger name="com.paymentapi" level="INFO"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+    <!-- Configuração padrão (quando nenhum profile está ativo) -->
+    <springProfile name="!dev &amp; !test &amp; !prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+        <logger name="com.paymentapi" level="INFO"/>
+        <logger name="org.springframework" level="WARN"/>
+    </springProfile>
+</configuration>
