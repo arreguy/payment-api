@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
 /**
- * Unit tests for CorrelationIdUtil utility class.
+ * Testes unitários pra classe CorrelationIdUtil.
  */
 class CorrelationIdUtilTest {
 
@@ -172,6 +172,5 @@ class CorrelationIdUtilTest {
     void testRemoveMdcContext_withNullKey_shouldNotThrowException() {
         // Arrange & Act & Assert
         CorrelationIdUtil.removeMdcContext(null);
-        // Should not throw exception
     }
 }

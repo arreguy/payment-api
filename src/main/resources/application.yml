@@ -34,6 +34,7 @@ spring:
       validation-timeout: 5000
       leak-detection-threshold: 60000
       connection-test-query: SELECT 1
+      register-mbeans: true
 
   flyway:
     enabled: true
@@ -60,17 +61,35 @@ logging:
 
 # Configurações do Actuator
 management:
+  server:
+    port: 8080
+    base-path: /
   endpoints:
     web:
+      base-path: /v1
       exposure:
         include: health,info,metrics,prometheus
+      path-mapping:
+        prometheus: metrics
   endpoint:
     health:
       show-details: when-authorized
+    prometheus:
+      enabled: true
   prometheus:
     metrics:
       export:
         enabled: true
+        step: 15s
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+    enable:
+      jvm: true
+      system: true
+      process: true
+      hikari: true
 
 springdoc:
   api-docs:

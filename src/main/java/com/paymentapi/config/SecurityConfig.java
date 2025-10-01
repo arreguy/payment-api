@@ -24,12 +24,14 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 // Endpoints de health check são públicos (Kubernetes)
                 .requestMatchers("/health/**").permitAll()
+                // Endpoints de métricas são públicos (Prometheus)
+                .requestMatchers("/v1/health/**", "/v1/metrics").permitAll()
                 // Endpoints do Swagger são públicos
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Qualquer outra requisição precisa estar autenticada
                 .anyRequest().authenticated()
             )
-            // Desabilita CSRF (pra APIs REST geralmente tá desabilitado)
+            // Desabilita CSRF
             .csrf(AbstractHttpConfigurer::disable)
             // Autenticação HTTP Basic
             .httpBasic(httpBasic -> {})
