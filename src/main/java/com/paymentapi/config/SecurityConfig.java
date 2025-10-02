@@ -5,11 +5,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Configuração de segurança da aplicação.
  * Define quais endpoints são públicos e quais precisam de autenticação.
+ * BCryptPasswordEncoder para hashing de senhas.
  */
 @Configuration
 @EnableWebSecurity
@@ -36,5 +38,15 @@ public class SecurityConfig {
             // Autenticação HTTP Basic
             .httpBasic(httpBasic -> {})
             .build();
+    }
+
+    /**
+     * Configura BCryptPasswordEncoder para hashing seguro de senhas.
+     *
+     * @return BCryptPasswordEncoder configurado com strength = 10
+     */
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(10);
     }
 }
