@@ -1,7 +1,7 @@
--- Enable UUID extension for primary key generation
+-- Habilita a extensão UUID pra gerar as chaves primárias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create users table
+-- Cria a tabela de usuários
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome_completo VARCHAR(100) NOT NULL,
@@ -15,12 +15,11 @@ CREATE TABLE users (
     version INTEGER NOT NULL DEFAULT 0
 );
 
--- Create indexes for performance optimization
--- Note: cpf and email already have unique indexes from UNIQUE constraints
+-- Cria índices pra otimizar as buscas
 CREATE INDEX idx_users_user_type ON users(user_type);
 CREATE INDEX idx_users_created_at ON users(created_at);
 
--- Create trigger function to auto-update updated_at and version on UPDATE
+-- Cria função de trigger pra atualizar automaticamente updated_at e version no UPDATE
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -30,7 +29,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger to execute the function before UPDATE on users table
+-- Cria trigger pra executar a função antes de fazer UPDATE na tabela users
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW

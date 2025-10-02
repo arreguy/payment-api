@@ -27,7 +27,7 @@ class UserTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Silva");
-    user.setCpf("12345678901");
+    user.setCpf("12345678909");
     user.setEmail("breno.pandino@gmail.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
@@ -44,8 +44,8 @@ class UserTest {
   void testNullNomeCompleto() {
     // Arrange
     User user = new User();
-    user.setNomeCompleto(null); // Invalid
-    user.setCpf("12345678901");
+    user.setNomeCompleto(null); // Inválido
+    user.setCpf("12345678909");
     user.setEmail("breno.pandino@gmail.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
@@ -65,7 +65,7 @@ class UserTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Pandino");
-    user.setCpf(null); // Invalid
+    user.setCpf(null); // Inválido
     user.setEmail("breno.pandino@gmail.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
@@ -85,8 +85,8 @@ class UserTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Pandino");
-    user.setCpf("12345678901");
-    user.setEmail("email-invalido");
+    user.setCpf("12345678909");
+    user.setEmail("email-invalido"); // Inválido
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
     user.setWalletBalance(10000);
@@ -106,9 +106,9 @@ class UserTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Pandino");
-    user.setCpf("12345678901");
+    user.setCpf("12345678909");
     user.setEmail("breno.pandino@gmail.com");
-    user.setSenha(null); // Invalid
+    user.setSenha(null); // Inválido
     user.setUserType(UserType.COMMON_USER);
     user.setWalletBalance(10000);
 
@@ -126,10 +126,10 @@ class UserTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Pandino");
-    user.setCpf("12345678901");
+    user.setCpf("12345678909");
     user.setEmail("breno.pandino@gmail.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
-    user.setUserType(null); // Invalid
+    user.setUserType(null); // Inválido
     user.setWalletBalance(10000);
 
     // Act
@@ -142,11 +142,126 @@ class UserTest {
   }
 
   @Test
+  void testInvalidCpfValidation() {
+    // Arrange
+    User user = new User();
+    user.setNomeCompleto("Breno Pandino");
+    user.setCpf("12345678900"); // Checksum inválido
+    user.setEmail("breno.pandino@gmail.com");
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.COMMON_USER);
+    user.setWalletBalance(10000);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).hasSize(1);
+    assertThat(violations.iterator().next().getMessage()).isEqualTo("CPF inválido");
+    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("cpf");
+  }
+
+  @Test
+  void testValidCpfFormatted() {
+    // Arrange
+    User user = new User();
+    user.setNomeCompleto("Breno Pandino");
+    user.setCpf("123.456.789-09"); // CPF formatado válido
+    user.setEmail("breno.pandino@gmail.com");
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.COMMON_USER);
+    user.setWalletBalance(10000);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).isEmpty();
+  }
+
+  @Test
+  void testValidCpfUnformatted() {
+    // Arrange
+    User user = new User();
+    user.setNomeCompleto("Breno Pandino");
+    user.setCpf("12345678909"); // CPF não-formatado válido
+    user.setEmail("breno.pandino@gmail.com");
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.COMMON_USER);
+    user.setWalletBalance(10000);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).isEmpty();
+  }
+
+  @Test
+  void testValidCnpjForMerchant() {
+    // Arrange
+    User user = new User();
+    user.setNomeCompleto("Merchant Business");
+    user.setCpf("12345678909");
+    user.setEmail("merchant@business.com");
+    user.setCnpj("11.222.333/0001-81"); // CNPJ formatado válido
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.MERCHANT);
+    user.setWalletBalance(0);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).isEmpty();
+  }
+
+  @Test
+  void testInvalidCnpjForMerchant() {
+    // Arrange
+    User user = new User();
+    user.setNomeCompleto("Merchant Business");
+    user.setCpf("12345678909");
+    user.setEmail("merchant@business.com");
+    user.setCnpj("11222333000180"); // Checksum inválido
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.MERCHANT);
+    user.setWalletBalance(0);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).hasSize(1);
+    assertThat(violations.iterator().next().getMessage()).isEqualTo("CNPJ inválido");
+    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("cnpj");
+  }
+
+  @Test
+  void testNullCnpjAllowed() {
+    // Arrange - COMMON_USER sem CNPJ
+    User user = new User();
+    user.setNomeCompleto("Breno Pandino");
+    user.setCpf("12345678909");
+    user.setEmail("breno.pandino@gmail.com");
+    user.setCnpj(null); // CNPJ null
+    user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user.setUserType(UserType.COMMON_USER);
+    user.setWalletBalance(10000);
+
+    // Act
+    Set<ConstraintViolation<User>> violations = validator.validate(user);
+
+    // Assert
+    assertThat(violations).isEmpty();
+  }
+
+  @Test
   void testEqualsAndHashCode() {
     // Arrange
     User user1 = new User();
     user1.setNomeCompleto("Breno Pandino");
-    user1.setCpf("12345678901");
+    user1.setCpf("12345678909");
     user1.setEmail("breno.pandino@gmail.com");
     user1.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user1.setUserType(UserType.COMMON_USER);
@@ -154,7 +269,7 @@ class UserTest {
 
     User user2 = new User();
     user2.setNomeCompleto("Camila Pandino");
-    user2.setCpf("98765432109");
+    user2.setCpf("98765432100");
     user2.setEmail("camila.pandino@gmail.com");
     user2.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user2.setUserType(UserType.MERCHANT);

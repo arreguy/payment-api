@@ -1,5 +1,5 @@
 -- V2__Create_transactions_table.sql
--- Transaction records table
+-- Tabela pra registrar as transações
 
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -17,6 +17,6 @@ CREATE INDEX idx_transactions_payee_id ON transactions(payee_id);
 CREATE INDEX idx_transactions_status ON transactions(transaction_status);
 CREATE INDEX idx_transactions_created_at ON transactions(created_at);
 
-COMMENT ON TABLE transactions IS 'Transaction records for money transfers';
-COMMENT ON COLUMN transactions.amount IS 'Transaction amount in cents';
-COMMENT ON COLUMN transactions.external_authorization_id IS 'Reference to external authorization service response';
+COMMENT ON TABLE transactions IS 'Registros de transações de transferência de grana';
+COMMENT ON COLUMN transactions.amount IS 'Valor da transação em centavos';
+COMMENT ON COLUMN transactions.external_authorization_id IS 'Referência da resposta do serviço externo de autorização';

@@ -44,7 +44,7 @@ class UserRepositoryTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Breno Pandino");
-    user.setCpf("12345678901");
+    user.setCpf("12345678909");
     user.setEmail("breno.pandino@gmail.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
@@ -56,7 +56,7 @@ class UserRepositoryTest {
     // Assert
     assertThat(savedUser.getId()).isNotNull();
     assertThat(savedUser.getNomeCompleto()).isEqualTo("Breno Pandino");
-    assertThat(savedUser.getCpf()).isEqualTo("12345678901");
+    assertThat(savedUser.getCpf()).isEqualTo("12345678909");
     assertThat(savedUser.getEmail()).isEqualTo("breno.pandino@gmail.com");
     assertThat(savedUser.getUserType()).isEqualTo(UserType.COMMON_USER);
     assertThat(savedUser.getWalletBalance()).isEqualTo(10000);
@@ -70,7 +70,7 @@ class UserRepositoryTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Maria Santos");
-    user.setCpf("98765432109");
+    user.setCpf("98765432100");
     user.setEmail("maria.santos@example.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.MERCHANT);
@@ -78,12 +78,12 @@ class UserRepositoryTest {
     userRepository.save(user);
 
     // Act
-    Optional<User> foundUser = userRepository.findByCpf("98765432109");
+    Optional<User> foundUser = userRepository.findByCpf("98765432100");
 
     // Assert
     assertThat(foundUser).isPresent();
     assertThat(foundUser.get().getNomeCompleto()).isEqualTo("Maria Santos");
-    assertThat(foundUser.get().getCpf()).isEqualTo("98765432109");
+    assertThat(foundUser.get().getCpf()).isEqualTo("98765432100");
     assertThat(foundUser.get().getUserType()).isEqualTo(UserType.MERCHANT);
   }
 
@@ -92,7 +92,7 @@ class UserRepositoryTest {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Pedro Oliveira");
-    user.setCpf("11122233344");
+    user.setCpf("52998224725");
     user.setEmail("pedro.oliveira@example.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);
@@ -113,7 +113,7 @@ class UserRepositoryTest {
     // Arrange
     User user1 = new User();
     user1.setNomeCompleto("Carlos Alberto");
-    user1.setCpf("55566677788");
+    user1.setCpf("71428793860");
     user1.setEmail("carlos1@example.com");
     user1.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user1.setUserType(UserType.COMMON_USER);
@@ -122,7 +122,7 @@ class UserRepositoryTest {
 
     User user2 = new User();
     user2.setNomeCompleto("Carlos Roberto");
-    user2.setCpf("55566677788"); // CPF duplicado
+    user2.setCpf("71428793860"); // CPF duplicado
     user2.setEmail("carlos2@example.com");
     user2.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user2.setUserType(UserType.COMMON_USER);
@@ -138,7 +138,7 @@ class UserRepositoryTest {
     // Arrange
     User user1 = new User();
     user1.setNomeCompleto("Ana Paula");
-    user1.setCpf("99988877766");
+    user1.setCpf("18293847670");
     user1.setEmail("ana@example.com");
     user1.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user1.setUserType(UserType.MERCHANT);
@@ -147,7 +147,7 @@ class UserRepositoryTest {
 
     User user2 = new User();
     user2.setNomeCompleto("Ana Maria");
-    user2.setCpf("99988877755");
+    user2.setCpf("96385274128");
     user2.setEmail("ana@example.com"); // E-mail duplicado
     user2.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user2.setUserType(UserType.MERCHANT);
@@ -159,11 +159,59 @@ class UserRepositoryTest {
   }
 
   @Test
+  void testUniqueCnpjConstraint() {
+    // Arrange
+    User user1 = new User();
+    user1.setNomeCompleto("Merchant One");
+    user1.setCpf("63251479873");
+    user1.setEmail("merchant1@example.com");
+    user1.setCnpj("11222333000181");
+    user1.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user1.setUserType(UserType.MERCHANT);
+    user1.setWalletBalance(0);
+    userRepository.save(user1);
+
+    User user2 = new User();
+    user2.setNomeCompleto("Merchant Two");
+    user2.setCpf("41798652897");
+    user2.setEmail("merchant2@example.com");
+    user2.setCnpj("11222333000181"); // CNPJ duplicado
+    user2.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    user2.setUserType(UserType.MERCHANT);
+    user2.setWalletBalance(0);
+
+    // Act & Assert
+    assertThatThrownBy(() -> userRepository.saveAndFlush(user2))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  @Test
+  void testSaveMerchantWithCnpj() {
+    // Arrange
+    User merchant = new User();
+    merchant.setNomeCompleto("Merchant Business");
+    merchant.setCpf("12345678909");
+    merchant.setEmail("merchant@business.com");
+    merchant.setCnpj("11222333000181");
+    merchant.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
+    merchant.setUserType(UserType.MERCHANT);
+    merchant.setWalletBalance(0);
+
+    // Act
+    User savedMerchant = userRepository.saveAndFlush(merchant);
+
+    // Assert
+    assertThat(savedMerchant.getId()).isNotNull();
+    assertThat(savedMerchant.getCnpj()).isEqualTo("11222333000181");
+    assertThat(savedMerchant.getUserType()).isEqualTo(UserType.MERCHANT);
+  }
+
+  @Test
   void testOptimisticLocking() {
     // Arrange
     User user = new User();
     user.setNomeCompleto("Lucas Ferreira");
-    user.setCpf("44455566677");
+    user.setCpf("71428793860");
     user.setEmail("lucas@example.com");
     user.setSenha("$2a$10$abcdefghijklmnopqrstuvwxyz123456");
     user.setUserType(UserType.COMMON_USER);

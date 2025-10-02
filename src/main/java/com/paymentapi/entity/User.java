@@ -1,6 +1,8 @@
 package com.paymentapi.entity;
 
 import com.paymentapi.entity.enums.UserType;
+import com.paymentapi.validation.constraints.ValidCnpj;
+import com.paymentapi.validation.constraints.ValidCpf;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -50,8 +52,11 @@ public class User {
   @Column(name = "nome_completo", length = 100, nullable = false)
   private String nomeCompleto;
 
+  /**
+   * CPF para user type COMMON_USER
+   */
   @NotNull
-  // @ValidCpf - Placeholder a ser desenvolvido
+  @ValidCpf
   @Column(unique = true, length = 11, nullable = false)
   private String cpf;
 
@@ -59,6 +64,13 @@ public class User {
   @Email
   @Column(unique = true, length = 255, nullable = false)
   private String email;
+
+  /**
+   * CNPJ para user type LOJISTA
+   */
+  @ValidCnpj
+  @Column(name = "cnpj", unique = true, length = 14, nullable = true)
+  private String cnpj;
 
   @NotNull
   @Column(length = 60, nullable = false)

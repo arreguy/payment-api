@@ -1,5 +1,5 @@
 -- V3__Create_analytical_events_table.sql
--- Analytical events table
+-- Tabela de eventos analíticos
 
 CREATE TABLE analytical_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -19,5 +19,5 @@ CREATE INDEX idx_analytical_events_created_at ON analytical_events(created_at);
 
 CREATE INDEX idx_analytical_events_data ON analytical_events USING GIN (event_data);
 
-COMMENT ON TABLE analytical_events IS 'Events for analytics and monitoring purposes';
-COMMENT ON COLUMN analytical_events.event_data IS 'JSON data with event-specific information';
+COMMENT ON TABLE analytical_events IS 'Eventos pra análise e monitoramento';
+COMMENT ON COLUMN analytical_events.event_data IS 'Dados em JSON com informações específicas do evento';
