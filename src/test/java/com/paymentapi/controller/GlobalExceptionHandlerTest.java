@@ -23,7 +23,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
 
 /**
- * Unit tests for GlobalExceptionHandler.
+ * Testes unitários pra GlobalExceptionHandler.
  */
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
@@ -40,7 +40,6 @@ class GlobalExceptionHandlerTest {
     void setUp() {
         MDC.clear();
         exceptionHandler = new GlobalExceptionHandler();
-        // Set correlation ID
         CorrelationIdUtil.setCorrelationId("test-correlation-id-123");
     }
 
@@ -72,13 +71,12 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody().get("timestamp"));
         assertNotNull(response.getBody().get("details"));
 
-        @SuppressWarnings("unchecked")
         Map<String, String> details = (Map<String, String>) response.getBody().get("details");
         assertEquals(2, details.size());
         assertTrue(details.containsKey("email"));
         assertTrue(details.containsKey("name"));
 
-        // Verify MDC
+        // Verificar MDC
         assertNull(MDC.get("error_type"));
         assertNull(MDC.get("request_path"));
     }
@@ -100,7 +98,7 @@ class GlobalExceptionHandlerTest {
         assertEquals("test-correlation-id-123", response.getBody().get("correlationId"));
         assertNotNull(response.getBody().get("timestamp"));
 
-        // Verify MDC
+        // Verificar MDC
         assertNull(MDC.get("error_type"));
         assertNull(MDC.get("request_path"));
     }
@@ -122,7 +120,7 @@ class GlobalExceptionHandlerTest {
         assertEquals("test-correlation-id-123", response.getBody().get("correlationId"));
         assertNotNull(response.getBody().get("timestamp"));
 
-        // Verify MDC
+        // Verificar MDC
         assertNull(MDC.get("error_type"));
         assertNull(MDC.get("request_path"));
     }
@@ -156,7 +154,6 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         String timestamp = (String) response.getBody().get("timestamp");
         assertNotNull(timestamp);
-        // Verify it's ISO 8601 format (contains T and Z)
         assertTrue(timestamp.contains("T"));
         assertTrue(timestamp.contains("Z") || timestamp.contains("+") || timestamp.contains("-"));
     }
@@ -174,7 +171,7 @@ class GlobalExceptionHandlerTest {
         // Act
         exceptionHandler.handleValidationException(ex, webRequest);
 
-        // Verify MDC
+        // Verificar MDC
         assertNull(MDC.get("error_type"));
         assertNull(MDC.get("request_path"));
     }

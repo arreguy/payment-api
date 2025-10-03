@@ -20,7 +20,7 @@ import org.slf4j.MDC;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
- * Unit tests for RequestResponseLoggingFilter.
+ * Testes unitários pra RequestResponseLoggingFilter.
  */
 @ExtendWith(MockitoExtension.class)
 class RequestResponseLoggingFilterTest {

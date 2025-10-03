@@ -13,7 +13,7 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.core.env.Environment;
 
 /**
- * Unit tests for ApplicationEventLogger.
+ * Testes unitários pra ApplicationEventLogger.
  */
 @ExtendWith(MockitoExtension.class)
 class ApplicationEventLoggerTest {
@@ -34,7 +34,6 @@ class ApplicationEventLoggerTest {
 
     @BeforeEach
     void setUp() {
-        // Setup will be done per test as needed
     }
 
     @Test

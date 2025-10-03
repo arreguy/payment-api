@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 
 /**
- * Unit tests for CorrelationIdFilter.
+ * Testes unitários pra CorrelationIdFilter.
  */
 @ExtendWith(MockitoExtension.class)
 class CorrelationIdFilterTest {
@@ -125,15 +125,13 @@ class CorrelationIdFilterTest {
 
         // Act & Assert
         try {
-            // Simulate exception in filter chain using doThrow
             org.mockito.Mockito.doThrow(new ServletException("Test exception"))
                     .when(filterChain).doFilter(request, response);
             filter.doFilter(request, response, filterChain);
         } catch (ServletException e) {
-            // Expected exception
         }
 
-        // MDC should still be cleared
+        // MDC limpo?
         assertNull(CorrelationIdUtil.getCorrelationId());
     }
 }
