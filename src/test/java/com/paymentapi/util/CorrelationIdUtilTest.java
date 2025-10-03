@@ -173,4 +173,29 @@ class CorrelationIdUtilTest {
         // Arrange & Act & Assert
         CorrelationIdUtil.removeMdcContext(null);
     }
+
+    @Test
+    void testCorrelationIdThreadIsolation() throws InterruptedException {
+        // Arrange
+        String mainThreadId = "main-thread-correlation-id";
+        String otherThreadId = "other-thread-correlation-id";
+
+        CorrelationIdUtil.setCorrelationId(mainThreadId);
+
+        // Act - executa em outra thread
+        Thread otherThread = new Thread(() -> {
+            // Thread não deve ter correlation ID da thread principal
+            assertNull(CorrelationIdUtil.getCorrelationId());
+
+            // Define correlation ID específico da thread
+            CorrelationIdUtil.setCorrelationId(otherThreadId);
+            assertEquals(otherThreadId, CorrelationIdUtil.getCorrelationId());
+        });
+
+        otherThread.start();
+        otherThread.join();
+
+        // Assert - correlation ID da thread principal deve permanecer inalterado
+        assertEquals(mainThreadId, CorrelationIdUtil.getCorrelationId());
+    }
 }
