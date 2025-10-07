@@ -1,12 +1,16 @@
 package com.paymentapi.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import com.paymentapi.dto.response.ErrorResponse;
+import com.paymentapi.exception.UserNotFoundException;
 import com.paymentapi.util.CorrelationIdUtil;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +27,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
 
 /**
- * Testes unitários pra GlobalExceptionHandler.
+ * Testes unitários para GlobalExceptionHandler.
  */
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
@@ -49,10 +53,10 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void testHandleValidationException_shouldReturnBadRequestWithDetails() {
+    void testHandleValidationException_shouldReturnUnprocessableEntityWithDetails() {
         // Arrange
         when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
-        when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of(
+        when(bindingResult.getAllErrors()).thenReturn(List.of(
                 new FieldError("user", "email", "must be a valid email"),
                 new FieldError("user", "name", "must not be blank")
         ));
@@ -60,21 +64,14 @@ class GlobalExceptionHandlerTest {
         MethodArgumentNotValidException ex = new MethodArgumentNotValidException(null, bindingResult);
 
         // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleValidationException(ex, webRequest);
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleMethodArgumentNotValidException(ex, webRequest);
 
         // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(400, response.getBody().get("status"));
-        assertEquals("Validation failed", response.getBody().get("message"));
-        assertEquals("test-correlation-id-123", response.getBody().get("correlationId"));
-        assertNotNull(response.getBody().get("timestamp"));
-        assertNotNull(response.getBody().get("details"));
-
-        Map<String, String> details = (Map<String, String>) response.getBody().get("details");
-        assertEquals(2, details.size());
-        assertTrue(details.containsKey("email"));
-        assertTrue(details.containsKey("name"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().detail()).contains("must be a valid email");
+        assertThat(response.getBody().detail()).contains("must not be blank");
+        assertThat(response.getBody().type()).isEqualTo("validation_error");
 
         // Verificar MDC
         assertNull(MDC.get("error_type"));
@@ -85,18 +82,37 @@ class GlobalExceptionHandlerTest {
     void testHandleIllegalArgumentException_shouldReturnBadRequest() {
         // Arrange
         when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
-        IllegalArgumentException ex = new IllegalArgumentException("Invalid parameter value");
+        IllegalArgumentException ex = new IllegalArgumentException("O valor deve ser positivo");
 
         // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleIllegalArgumentException(ex, webRequest);
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleIllegalArgumentException(ex, webRequest);
 
         // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(400, response.getBody().get("status"));
-        assertEquals("Invalid parameter value", response.getBody().get("message"));
-        assertEquals("test-correlation-id-123", response.getBody().get("correlationId"));
-        assertNotNull(response.getBody().get("timestamp"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().detail()).isEqualTo("O valor deve ser positivo");
+        assertThat(response.getBody().type()).isEqualTo("validation_error");
+
+        // Verificar MDC
+        assertNull(MDC.get("error_type"));
+        assertNull(MDC.get("request_path"));
+    }
+
+    @Test
+    void testHandleUserNotFoundException_shouldReturnConflict() {
+        // Arrange
+        when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/transfer");
+        UserNotFoundException ex = new UserNotFoundException("12345678909");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleUserNotFoundException(ex, webRequest);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().detail()).contains("Usuário não encontrado");
+        assertThat(response.getBody().detail()).contains("123.***.***-**");
+        assertThat(response.getBody().type()).isEqualTo("user_not_found");
 
         // Verificar MDC
         assertNull(MDC.get("error_type"));
@@ -110,66 +126,34 @@ class GlobalExceptionHandlerTest {
         Exception ex = new RuntimeException("Unexpected error occurred");
 
         // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleGenericException(ex, webRequest);
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleGenericException(ex, webRequest);
 
         // Assert
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(500, response.getBody().get("status"));
-        assertEquals("An unexpected error occurred", response.getBody().get("message"));
-        assertEquals("test-correlation-id-123", response.getBody().get("correlationId"));
-        assertNotNull(response.getBody().get("timestamp"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().detail())
+            .isEqualTo("Erro interno do servidor. Por favor, tente novamente mais tarde.");
+        assertThat(response.getBody().type()).isEqualTo("internal_server_error");
+        // Verifica que a mensagem de erro interna não é exposta
+        assertThat(response.getBody().detail()).doesNotContain("Unexpected error occurred");
 
         // Verificar MDC
         assertNull(MDC.get("error_type"));
         assertNull(MDC.get("request_path"));
-    }
-
-    @Test
-    void testHandleException_withCorrelationIdInMdc_shouldIncludeInResponse() {
-        // Arrange
-        String expectedCorrelationId = "specific-correlation-id-456";
-        CorrelationIdUtil.setCorrelationId(expectedCorrelationId);
-        when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/payment");
-        Exception ex = new Exception("Test exception");
-
-        // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleGenericException(ex, webRequest);
-
-        // Assert
-        assertNotNull(response.getBody());
-        assertEquals(expectedCorrelationId, response.getBody().get("correlationId"));
-    }
-
-    @Test
-    void testHandleException_shouldUseIso8601Timestamp() {
-        // Arrange
-        when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
-        Exception ex = new Exception("Test exception");
-
-        // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleGenericException(ex, webRequest);
-
-        // Assert
-        assertNotNull(response.getBody());
-        String timestamp = (String) response.getBody().get("timestamp");
-        assertNotNull(timestamp);
-        assertTrue(timestamp.contains("T"));
-        assertTrue(timestamp.contains("Z") || timestamp.contains("+") || timestamp.contains("-"));
     }
 
     @Test
     void testHandleValidationException_shouldCleanupMdcEvenOnException() {
         // Arrange
         when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
-        when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of(
+        when(bindingResult.getAllErrors()).thenReturn(List.of(
                 new FieldError("user", "email", "invalid")
         ));
 
         MethodArgumentNotValidException ex = new MethodArgumentNotValidException(null, bindingResult);
 
         // Act
-        exceptionHandler.handleValidationException(ex, webRequest);
+        exceptionHandler.handleMethodArgumentNotValidException(ex, webRequest);
 
         // Verificar MDC
         assertNull(MDC.get("error_type"));
@@ -177,30 +161,36 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void testHandleException_requestPathWithoutUriPrefix_shouldHandleCorrectly() {
-        // Arrange
-        when(webRequest.getDescription(false)).thenReturn("/api/v1/test");
-        Exception ex = new Exception("Test exception");
-
-        // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleGenericException(ex, webRequest);
-
-        // Assert
-        assertNotNull(response.getBody());
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.getBody().get("status"));
-    }
-
-    @Test
-    void testErrorResponse_withNullDetails_shouldNotIncludeDetailsField() {
+    void testErrorResponseFollowsRfc0006Format() {
         // Arrange
         when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
         IllegalArgumentException ex = new IllegalArgumentException("Test error");
 
         // Act
-        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleIllegalArgumentException(ex, webRequest);
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleIllegalArgumentException(ex, webRequest);
+
+        // Assert - verifica estrutura RFC 0006
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().detail()).isNotNull();
+        assertThat(response.getBody().type()).isNotNull();
+        // RFC 0006 especifica apenas detail e type
+        assertThat(response.getBody()).hasNoNullFieldsOrProperties();
+    }
+
+    @Test
+    void testNoSensitiveInformationExposed() {
+        // Arrange - simula um erro com stack trace e informações internas
+        when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/test");
+        Exception ex = new NullPointerException("Cannot invoke method on null object at com.paymentapi.internal.SecretClass");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleGenericException(ex, webRequest);
 
         // Assert
-        assertNotNull(response.getBody());
-        assertTrue(!response.getBody().containsKey("details") || response.getBody().get("details") == null);
+        assertThat(response.getBody()).isNotNull();
+        // Verifica que a resposta não expõe informações internas
+        assertThat(response.getBody().detail()).doesNotContain("SecretClass");
+        assertThat(response.getBody().detail()).doesNotContain("NullPointerException");
+        assertThat(response.getBody().detail()).doesNotContain("stack");
     }
 }

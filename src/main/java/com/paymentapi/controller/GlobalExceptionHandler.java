@@ -1,9 +1,12 @@
 package com.paymentapi.controller;
 
+import com.paymentapi.dto.response.ErrorResponse;
+import com.paymentapi.exception.UserNotFoundException;
 import com.paymentapi.util.CorrelationIdUtil;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,8 +17,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 /**
- * Handler global de exceções que captura erros de todos os controllers
- * e loga eles com contexto estruturado incluindo correlation IDs, stack traces e informações da requisição.
+ * Manipulador global de exceções para toda a aplicação.
+ * Este componente intercepta exceções lançadas pelos controllers e as transforma
+ * em respostas HTTP padronizadas
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -23,10 +27,17 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Trata os erros de validação das anotações @Valid
+     * Trata erros de validação de Bean Validation (annotations @NotNull, @Positive, etc).
+     * <p>
+     * Retorna HTTP 422 Unprocessable Entity com detalhes das violações de validação
+     * no formato RFC 0006.
+     *
+     * @param ex exceção de validação lançada pelo Spring
+     * @param request contexto da requisição web
+     * @return ResponseEntity com ErrorResponse e HTTP 422
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException ex,
             WebRequest request) {
 
@@ -40,30 +51,29 @@ public class GlobalExceptionHandler {
             CorrelationIdUtil.setMdcContext("error_type", errorType);
             CorrelationIdUtil.setMdcContext("request_path", requestPath);
 
-            // Monta o mapa com os erros de validação
-            Map<String, String> validationErrors = new HashMap<>();
-            ex.getBindingResult().getFieldErrors().forEach(error ->
-                    validationErrors.put(error.getField(), error.getDefaultMessage())
-            );
+            // Coleta todas as mensagens de erro de validação
+            String detail = ex.getBindingResult()
+                .getAllErrors()
+                .stream()
+                .map(error -> error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
 
             // Loga o erro
             logger.warn(
-                    "Validation error: correlationId={} requestPath={} errorType={} validationErrors={}",
+                    "Validation error: correlationId={} requestPath={} errorType={} detail={}",
                     correlationId,
                     requestPath,
                     errorType,
-                    validationErrors
+                    detail
             );
 
             // Monta a resposta de erro
-            Map<String, Object> errorResponse = buildErrorResponse(
-                    HttpStatus.BAD_REQUEST,
-                    "Validation failed",
-                    correlationId,
-                    validationErrors
+            ErrorResponse errorResponse = new ErrorResponse(
+                detail,
+                "validation_error"
             );
 
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
         } finally {
             // Limpa o contexto de erro do MDC
             cleanupErrorContext();
@@ -71,10 +81,57 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceções de argumento ilegal
+     * Trata exceções de usuário não encontrado durante validações.
+     * <p>
+     * Retorna HTTP 409 Conflict para indicar que a operação não pode prosseguir
+     * porque o usuário referenciado não existe.
+     *
+     * @param ex exceção de usuário não encontrado
+     * @param request contexto da requisição web
+     * @return ResponseEntity com ErrorResponse e HTTP 409
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFoundException(
+            UserNotFoundException ex,
+            WebRequest request) {
+
+        String correlationId = CorrelationIdUtil.getCorrelationId();
+        String requestPath = getRequestPath(request);
+        String errorType = ex.getClass().getSimpleName();
+
+        try {
+            CorrelationIdUtil.setMdcContext("error_type", errorType);
+            CorrelationIdUtil.setMdcContext("request_path", requestPath);
+
+            logger.warn(
+                    "User not found: correlationId={} requestPath={} message={}",
+                    correlationId,
+                    requestPath,
+                    ex.getMessage()
+            );
+
+            ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                "user_not_found"
+            );
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        } finally {
+            cleanupErrorContext();
+        }
+    }
+
+    /**
+     * Trata exceções de argumentos inválidos (principalmente valores monetários).
+     * <p>
+     * Retorna HTTP 400 Bad Request para indicar que a requisição contém dados inválidos.
+     *
+     * @param ex exceção de argumento ilegal
+     * @param request contexto da requisição web
+     * @return ResponseEntity com ErrorResponse e HTTP 400
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
             IllegalArgumentException ex,
             WebRequest request) {
 
@@ -83,11 +140,9 @@ public class GlobalExceptionHandler {
         String errorType = ex.getClass().getSimpleName();
 
         try {
-            // Coloca informações de erro no MDC
             CorrelationIdUtil.setMdcContext("error_type", errorType);
             CorrelationIdUtil.setMdcContext("request_path", requestPath);
 
-            // Loga o erro
             logger.warn(
                     "Illegal argument error: correlationId={} requestPath={} errorType={} message={}",
                     correlationId,
@@ -96,26 +151,29 @@ public class GlobalExceptionHandler {
                     ex.getMessage()
             );
 
-            // Monta a resposta de erro
-            Map<String, Object> errorResponse = buildErrorResponse(
-                    HttpStatus.BAD_REQUEST,
-                    ex.getMessage(),
-                    correlationId,
-                    null
+            ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                "validation_error"
             );
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } finally {
-            // Limpa o contexto de erro do MDC
             cleanupErrorContext();
         }
     }
 
     /**
-     * Trata todas as outras exceções não capturadas, logando com stack trace completo
+     * Trata exceções genéricas e inesperadas.
+     * <p>
+     * Retorna HTTP 500 Internal Server Error sem expor detalhes internos do erro.
+     * O stack trace completo é logado para investigação posterior.
+     *
+     * @param ex exceção genérica
+     * @param request contexto da requisição web
+     * @return ResponseEntity com ErrorResponse e HTTP 500
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(
+    public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex,
             WebRequest request) {
 
@@ -124,7 +182,6 @@ public class GlobalExceptionHandler {
         String errorType = ex.getClass().getSimpleName();
 
         try {
-            // Coloca informações de erro no MDC
             CorrelationIdUtil.setMdcContext("error_type", errorType);
             CorrelationIdUtil.setMdcContext("request_path", requestPath);
 
@@ -138,44 +195,15 @@ public class GlobalExceptionHandler {
                     ex // Passa a exceção pro Logback incluir o stack trace nos logs
             );
 
-            // Monta a resposta de erro genérica
-            Map<String, Object> errorResponse = buildErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "An unexpected error occurred",
-                    correlationId,
-                    null
+            ErrorResponse errorResponse = new ErrorResponse(
+                "Erro interno do servidor. Por favor, tente novamente mais tarde.",
+                "internal_server_error"
             );
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         } finally {
-            // Limpa o contexto de erro do MDC
             cleanupErrorContext();
         }
-    }
-
-    /**
-     * Monta a resposta de erro padronizada
-     */
-    private Map<String, Object> buildErrorResponse(
-            HttpStatus status,
-            String message,
-            String correlationId,
-            Object details) {
-
-        // Cria o mapa com as informações do erro
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", status.value());
-        errorResponse.put("error", status.getReasonPhrase());
-        errorResponse.put("message", message);
-        errorResponse.put("correlationId", correlationId);
-        errorResponse.put("timestamp", Instant.now().toString());
-
-        // Adiciona detalhes se tiver
-        if (details != null) {
-            errorResponse.put("details", details);
-        }
-
-        return errorResponse;
     }
 
     /**
@@ -183,7 +211,6 @@ public class GlobalExceptionHandler {
      */
     private String getRequestPath(WebRequest request) {
         String path = request.getDescription(false);
-        // Remove o prefixo "uri=" se tiver
         return path.startsWith("uri=") ? path.substring(4) : path;
     }
 
